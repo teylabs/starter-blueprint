@@ -12,20 +12,11 @@ use Tey\Mod\Maintenance\Artifact;
 use Tey\Mod\Maintenance\Checkout;
 use Tey\Mod\Maintenance\FilePlan;
 use Tey\Mod\Maintenance\Maintenance;
-use Throwable;
 
 /** Opinionated adapter; all lifecycle effects belong to Mod's public API. */
 final readonly class Lifecycle
 {
-    private ?array $experimentalMod;
-
-    public function __construct(?array $experimentalMod = null, private ?Closure $verifyExperimentalMod = null)
-    {
-        if ($experimentalMod !== null && (count($experimentalMod) !== 2 || ($experimentalMod['kind'] ?? null) !== 'local-experimental' || ! is_string($experimentalMod['ref'] ?? null) || ! preg_match('/\A[a-f0-9]{40}\z/', $experimentalMod['ref']) || $verifyExperimentalMod === null)) {
-            throw new InvalidArgumentException('Experimental source requires an explicit kind/ref and trusted source verifier.');
-        }
-        $this->experimentalMod = $experimentalMod === null ? null : ['kind' => $experimentalMod['kind'], 'ref' => $experimentalMod['ref']];
-    }
+    private const MOD = '^0.8';
 
     /** Checks actual installed packages and PHP, never a caller-supplied version inventory. */
     public static function compatibility(array $requirements): array
@@ -42,27 +33,15 @@ final readonly class Lifecycle
         return $outcomes;
     }
 
+    /** The Mod release this process runs on; lifecycle needs the released Maintenance API. */
     public function runtime(): array
     {
         $version = InstalledVersions::isInstalled('tey/mod') ? InstalledVersions::getPrettyVersion('tey/mod') : null;
-        if (! class_exists(Maintenance::class) || ! class_exists(Artifact::class) || ! property_exists(Artifact::class, 'metadata')) {
-            throw new RuntimeException('Released Mod 0.7.2 supports scaffolding, not this experimental lifecycle API.');
-        }
-        if ($this->experimentalMod === null && ($version === null || Semver::satisfies($version, '<=0.7.2'))) {
-            throw new RuntimeException('Mod 0.7.2 lifecycle requires an explicitly verified local experimental source.');
-        }
-        if ($this->experimentalMod !== null) {
-            try {
-                $verified = ($this->verifyExperimentalMod)();
-            } catch (Throwable) {
-                throw new RuntimeException('Experimental Mod source verification failed.');
-            }
-            if ($verified !== $this->experimentalMod['ref']) {
-                throw new RuntimeException('Experimental Mod source verification failed.');
-            }
+        if ($version === null || ! Semver::satisfies($version, self::MOD) || ! class_exists(Maintenance::class)) {
+            throw new RuntimeException('Lifecycle requires released tey/mod '.self::MOD.'.');
         }
 
-        return ['installed_mod_version' => $version, 'experimental_source' => $this->experimentalMod];
+        return ['installed_mod_version' => $version];
     }
 
     public function artifact(Blueprint $blueprint, array $bindings): Artifact
@@ -79,12 +58,10 @@ final readonly class Lifecycle
         return new Artifact($manifest['id'], $manifest['version'], $snapshot['files'], $manifest['groups'], $bindings, $manifest['verification'], metadata: $metadata);
     }
 
-    /** The original for a first adoption: no files, and the same name, modules, bindings and checks as the target. */
-    private function empty(Artifact $b, Blueprint $target): Artifact
+    /** The original for a first adoption: no files, and the same name, groups, bindings and checks as the target. */
+    private function empty(Artifact $b): Artifact
     {
-        $metadata = $target->selection() === [] ? [] : ['blueprint_features' => [], 'applied_migration_ids' => []];
-
-        return new Artifact($b->name, $b->version, [], $b->modules, $b->bindings, $b->checks, metadata: $metadata);
+        return new Artifact($b->name, $b->version, [], $b->groups, $b->bindings, $b->checks);
     }
 
     public function plan(string $root, string $appId, ?Blueprint $original, Blueprint $target, array $bindings, array $inputPaths): FilePlan
@@ -93,7 +70,8 @@ final readonly class Lifecycle
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $bindings);
-        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $bindings);
+        $a = $original === null ? $this->empty($b) : $this->artifact($original, $bindings);
+        $this->installed($root, $original === null ? null : $a, [$a]);
         $plan = Checkout::inspect($root, $appId, $a, $b, $inputPaths, $compatibility);
         $this->inputs($root, $inputPaths, $runtime);
 
@@ -106,10 +84,11 @@ final readonly class Lifecycle
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $plan->target->bindings);
-        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $plan->baseline->bindings);
+        $a = $original === null ? $this->empty($b) : $this->artifact($original, $plan->baseline->bindings);
         if ($plan->target->identity() !== $b->identity() || $plan->baseline->identity() !== $a->identity() || $plan->compatibility !== $compatibility) {
             throw new RuntimeException('Plan does not match the immutable blueprint and current compatibility.');
         }
+        $this->installed($plan->root, $original === null ? null : $a, [$a]);
         Checkout::inspect($plan->root, $plan->appId, $a, $b, $inputPaths, $compatibility);
         $this->inputs($plan->root, $inputPaths, $runtime);
         $this->hostCheck($plan->root, $inputPaths, $hostOperationCheck);
@@ -124,13 +103,38 @@ final readonly class Lifecycle
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $bindings);
-        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $bindings);
+        $a = $original === null ? $this->empty($b) : $this->artifact($original, $bindings);
+        $this->installed($root, $original === null ? null : $a, [$a, $b]);
         Checkout::inspect($root, $appId, $a, $b, $inputPaths, $compatibility);
         $this->inputs($root, $inputPaths, $runtime);
         $this->hostCheck($root, $inputPaths, $hostOperationCheck);
         $result = Maintenance::resume($root, $appId, $a, $b, $inputPaths, $compatibility, $intent, $this->checks($original, $target, $hostOperationCheck), $exclusiveCheckout);
 
         return $result + ['runtime' => $runtime];
+    }
+
+    /**
+     * An upgrade's original must be the installed artifact exactly, metadata included; Mod refuses it otherwise.
+     * Resume may also meet the target when the intent already completed.
+     *
+     * @param  list<Artifact>  $accepted
+     */
+    private function installed(string $root, ?Artifact $original, array $accepted): void
+    {
+        if ($original === null) {
+            return;
+        }
+        $path = $root.'/.mod-maintenance/installed.json';
+        if (! is_file($path)) {
+            return;
+        }
+        $identity = json_decode(file_get_contents($path), true, 32)['artifact']['identity'] ?? null;
+        foreach ($accepted as $artifact) {
+            if ($identity === $artifact->identity()) {
+                return;
+            }
+        }
+        throw new RuntimeException('The original given must be exactly the installed artifact, features and bindings included.');
     }
 
     private function compatible(Blueprint $target): array
@@ -148,9 +152,6 @@ final readonly class Lifecycle
     private function inputs(string $root, array $inputPaths, array $runtime): void
     {
         $required = ['verification-policy', 'verification-code', 'dependency-lock', 'host-config', 'host-binding', 'host-operations', 'executor-provenance'];
-        if ($this->experimentalMod !== null) {
-            $required[] = 'experimental-mod-source';
-        }
         foreach ($required as $id) {
             if (! isset($inputPaths[$id]) || ! is_file($root.'/'.$inputPaths[$id])) {
                 throw new RuntimeException('Missing required host verification input: '.$id);

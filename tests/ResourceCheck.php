@@ -33,7 +33,7 @@ try {
             $bytes = file_get_contents($path);
             file_put_contents($path, $resource === 'blueprint.json' ? str_replace('private-workspace', 'changed-workspace', $bytes) : $bytes.'// changed');
         }
-        $process = proc_open([PHP_BINARY, __DIR__.'/LifecycleCheck.php', $argv[1], $argv[2], $copy, $mode, $release], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
+        $process = proc_open([PHP_BINARY, __DIR__.'/LifecycleCheck.php', $argv[1], $copy, $mode, $release], [1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
         $output = stream_get_contents($pipes[1]);
         $error = stream_get_contents($pipes[2]);
         fclose($pipes[1]);

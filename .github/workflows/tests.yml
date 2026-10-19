@@ -34,5 +34,9 @@ jobs:
           php tests/ScaffoldCheck.php vendor/autoload.php features:foundation,defaults misplace-defaults
       - name: Feature manifests and selections
         run: php tests/FeatureCheck.php vendor/autoload.php
-      - name: Released Mod refuses lifecycle
-        run: php tests/LifecycleCheck.php vendor/autoload.php released
+      - name: Lifecycle on released Mod
+        run: |
+          composer show tey/mod | grep -E '^versions : \* v0\.8\.'
+          php tests/LifecycleCheck.php vendor/autoload.php
+      - name: Resource tamper checks
+        run: php tests/ResourceCheck.php vendor/autoload.php

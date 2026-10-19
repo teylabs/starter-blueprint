@@ -1,0 +1,7 @@
+{
+    "name": "tey/concierge",
+    "description": "Test-only stand-in for the released 0.7.1, which does not yet allow tey/mod 0.8. Carries no code.",
+    "version": "0.7.1",
+    "type": "library",
+    "license": "MIT"
+}
