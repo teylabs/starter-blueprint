@@ -22,6 +22,32 @@ Mod 0.8 keeps one installed record per checkout and refuses changes to an artifa
 
 Per-feature artifacts need an additive Mod API and are not part of 0.1. The manifest shape is ready for it.
 
+## External catalogs
+
+The two features above are this package's own catalog, `Catalog::package()`. A consuming package can ship its own. A `Catalog` is a directory with a `blueprint.json` and a `<feature>/feature.json` per feature, plus the pinned identity of each:
+
+```php
+$catalog = Catalog::at($root, [
+    'core' => 'sha256:…',
+    'notes' => 'sha256:…',
+], basePin: 'sha256:…');
+
+Blueprint::features(['core', 'notes'], $catalog);
+Blueprint::all($catalog);
+```
+
+The pins list the features in canonical order. Every check that applies to the package catalog applies to an external one: a wrong pin, a changed manifest, a changed stub, a stub added to or removed from a tree, or a changed `blueprint.json` is refused with the same identity error. A catalog pins its own features only; package features are not available in it. Release fixtures A–D stay package-only.
+
+A feature can list its files, or point at a tree of stubs, or both:
+
+```json
+"files_from": {"stubs": "stubs", "target": "app/Notes"}
+```
+
+The tree is expanded the same way every time: files sorted by relative path, each target is `target` plus the relative path with a trailing `.stub` dropped, and ownership is `generated`. An optional `scaffold` key sets the scaffold (default `starter-foundation`). Explicit `files` entries come first. The result is the same map you would get by listing every file. Dotfiles and dot directories are skipped, unless you list one in `files`. A symlink, anything that is not a regular file, a path with `..`, an absolute path, a target outside the feature's `owns`, or two stubs for one target is refused. The feature's identity hashes the manifest and the bytes of every expanded stub.
+
+To let `starter:maintain` use a catalog, implement `CatalogHost` on the bound `LifecycleHost`. Its `catalog()` is used to build the `--features` and `--original-features` blueprints. A host without it uses the package catalog. The command does not change. `--target` and `--original` still name release fixtures. A host's own command can also build blueprints with `Blueprint::features($ids, $catalog)` and call `Lifecycle::plan`, `apply` and `resume` directly.
+
 A–D stay as release fixtures. They are separate regression evidence, not feature sets: their stub bytes carry their own versions (0.1.0 to 0.4.0). Their manifests use the `groups` key, and their pinned identities changed with it (see the changelog).
 
 The `starter-foundation` scaffold uses public released Mod APIs. Preview with `starter:foundation --dry-run --json`; then generate explicitly with `--no-interaction`. A/B generate one policy file. C/D add a separately owned defaults file for the two-file upgrade proof. It does not establish a bootable/authenticated application, persisted ownership, upgrade/recovery, browser or product-MCP acceptance.
@@ -44,7 +70,7 @@ Preview with `starter:maintain plan --target=C`, or `starter:maintain plan --fea
 
 The artifact's inert metadata contains the pinned blueprint source, complete manifest and truthful empty applied-migration IDs. Requirements, migration declarations, exceptions and host ownership are provenance, not execution evidence. The generic Mod installed record remains the sole version authority, committed last. Executor provenance is separate from immutable artifact provenance. It is exposed in results and bound through the checked executor-provenance input in the authoritative installed commit. A changed executor and input can run a new upgrade intent against the unchanged historical artifact; they cannot reuse an old intent. The input is host configuration, never a competing installed-version record. All paths require an exclusively owned checkout. Advisory locking cannot protect against arbitrary editors; preserve/refuse conflicts and unresolved recovery files.
 
-Run `php tests/FeatureCheck.php <autoload.php>` for manifest validation and feature growth rules (no lifecycle API needed). Run `php tests/ScaffoldCheck.php <autoload.php> features:foundation,defaults` for a feature selection. Run `php tests/LifecycleCheck.php <autoload.php>` for the lifecycle against the Mod in vendor: first adoption, plan and apply, additive upgrade, refused removal, an unowned path, resume, and a cold retry. `php tests/ResourceCheck.php <autoload.php>` tampers only fresh disposable package copies. CI runs all of these on PHP 8.4 and 8.5. These callbacks and files are synthetic adapter evidence, not consumer operation/tenant/browser/database acceptance. `ScaffoldCheck.php` compares snapshots to actual public released scaffold output for every A/B/C/D release.
+Run `php tests/CatalogCheck.php <autoload.php>` for external catalogs, stub trees and the catalog host, against the fixture catalog in `tests/fixtures/catalog`. Run `php tests/FeatureCheck.php <autoload.php>` for manifest validation and feature growth rules (no lifecycle API needed). Run `php tests/ScaffoldCheck.php <autoload.php> features:foundation,defaults` for a feature selection. Run `php tests/LifecycleCheck.php <autoload.php>` for the lifecycle against the Mod in vendor: first adoption, plan and apply, additive upgrade, refused removal, an unowned path, resume, and a cold retry. `php tests/ResourceCheck.php <autoload.php>` tampers only fresh disposable package copies. CI runs all of these on PHP 8.4 and 8.5. These callbacks and files are synthetic adapter evidence, not consumer operation/tenant/browser/database acceptance. `ScaffoldCheck.php` compares snapshots to actual public released scaffold output for every A/B/C/D release.
 
 The tests install the blueprint's peer packages as dev dependencies, so the compatibility check runs on real released versions, including `tey/concierge` ^0.7.2 with Mod 0.8.
 

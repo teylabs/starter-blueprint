@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Added
+
+- `Catalog`: a feature catalog outside the package, with its own pinned identities. `Catalog::at($root, $pins, $basePin)` builds one, `Catalog::package()` is this package's own. `Blueprint::features()`, `Blueprint::all()` and `Blueprint::featureIds()` take an optional catalog and default to the package catalog. An external catalog's identities are checked as strictly as the package's.
+- `files_from` in a feature manifest: a tree of stubs expands into generated files, sorted, with symlinks, escapes and duplicate targets refused. The feature identity covers every expanded stub.
+- `CatalogHost`: a `LifecycleHost` that also implements it supplies the catalog `starter:maintain` builds its blueprints from.
+- A seven-feature fixture catalog and `tests/CatalogCheck.php`, run in CI.
+
 ## v0.1.0
 
 ### Added

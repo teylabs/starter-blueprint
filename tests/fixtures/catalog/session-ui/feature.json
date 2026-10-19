@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "id": "session-ui",
+  "owns": [
+    "app/Session"
+  ],
+  "files": {
+    "app/Session/SessionBanner.php": {
+      "stub": "session-banner.php.stub",
+      "scaffold": "starter-foundation",
+      "ownership": "generated"
+    }
+  },
+  "requires": {
+    "features": [
+      "workspaces"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}

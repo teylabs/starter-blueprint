@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use RuntimeException;
 use Tey\Mod\Maintenance\Maintenance;
 use Tey\StarterBlueprint\Blueprint;
+use Tey\StarterBlueprint\CatalogHost;
 use Tey\StarterBlueprint\LifecycleHost;
 use Throwable;
 
@@ -27,9 +28,10 @@ final class LifecycleCommand extends Command
             }
             $host = $this->laravel->make(LifecycleHost::class);
             $lifecycle = $host->lifecycle();
-            $target = $this->option('features') === null ? Blueprint::release($this->option('target')) : Blueprint::features($this->list('features'));
+            $catalog = $host instanceof CatalogHost ? $host->catalog() : null;
+            $target = $this->option('features') === null ? Blueprint::release($this->option('target')) : Blueprint::features($this->list('features'), $catalog);
             $original = match (true) {
-                $this->option('original-features') !== null => Blueprint::features($this->list('original-features')),
+                $this->option('original-features') !== null => Blueprint::features($this->list('original-features'), $catalog),
                 $this->option('original') !== null => Blueprint::release($this->option('original')),
                 default => null,
             };

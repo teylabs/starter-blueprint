@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "id": "fixture/catalog-app",
+  "version": "0.1.0",
+  "groups": [
+    "workspace-foundation"
+  ],
+  "migration_order": [
+    "host identity/workspace tables",
+    "permission team schema",
+    "Concierge membership/invitation schema",
+    "host workspace settings and example feature"
+  ],
+  "verification": [
+    "dependency compatibility",
+    "generated resource integrity",
+    "host operation and tenant acceptance"
+  ],
+  "auth": {
+    "browser": "session authentication; closed registration",
+    "mcp": "delegated OAuth2 protocol binding required; no synthetic actor bypass"
+  },
+  "exceptions": []
+}

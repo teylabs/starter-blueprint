@@ -34,6 +34,8 @@ jobs:
           php tests/ScaffoldCheck.php vendor/autoload.php features:foundation,defaults misplace-defaults
       - name: Feature manifests and selections
         run: php tests/FeatureCheck.php vendor/autoload.php
+      - name: Feature catalogs and stub trees
+        run: php tests/CatalogCheck.php vendor/autoload.php
       - name: Lifecycle on released Mod
         run: |
           composer show tey/mod | grep -E '^versions : \* v0\.8\.'

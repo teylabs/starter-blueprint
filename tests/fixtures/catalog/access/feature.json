@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "id": "access",
+  "owns": [
+    "app/Access"
+  ],
+  "files": {
+    "app/Access/AccessRules.php": {
+      "stub": "access-rules.php.stub",
+      "scaffold": "starter-foundation",
+      "ownership": "generated"
+    }
+  },
+  "requires": {
+    "features": [
+      "workspaces"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}

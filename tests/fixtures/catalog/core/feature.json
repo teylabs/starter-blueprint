@@ -1,0 +1,25 @@
+{
+  "format": 1,
+  "id": "core",
+  "owns": [
+    "app/Support/Core"
+  ],
+  "files": {
+    "app/Support/Core/CoreMarker.php": {
+      "stub": "core-marker.php.stub",
+      "scaffold": "starter-foundation",
+      "ownership": "generated"
+    }
+  },
+  "requires": {
+    "features": [],
+    "packages": {
+      "php": "~8.4.0 || ~8.5.0"
+    }
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "id": "notes",
+  "owns": [
+    "app/Notes"
+  ],
+  "files_from": {
+    "stubs": "stubs",
+    "target": "app/Notes"
+  },
+  "requires": {
+    "features": [
+      "workspaces"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}

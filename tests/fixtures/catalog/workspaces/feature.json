@@ -1,0 +1,22 @@
+{
+  "format": 1,
+  "id": "workspaces",
+  "owns": [
+    "app/Workspaces"
+  ],
+  "files_from": {
+    "stubs": "stubs",
+    "target": "app/Workspaces"
+  },
+  "requires": {
+    "features": [
+      "core"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}

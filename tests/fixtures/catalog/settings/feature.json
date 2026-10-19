@@ -1,0 +1,30 @@
+{
+  "format": 1,
+  "id": "settings",
+  "owns": [
+    "app/Settings"
+  ],
+  "files": {
+    "app/Settings/SettingsPage.php": {
+      "stub": "settings-page.php.stub",
+      "scaffold": "starter-foundation",
+      "ownership": "generated"
+    }
+  },
+  "files_from": {
+    "stubs": "stubs",
+    "target": "app/Settings"
+  },
+  "requires": {
+    "features": [
+      "workspaces",
+      "access"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "app/Domain",
+    "config/starter-bindings.php"
+  ]
+}
