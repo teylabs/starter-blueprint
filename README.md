@@ -46,7 +46,7 @@ The artifact's inert metadata contains the pinned blueprint source, complete man
 
 Run `php tests/FeatureCheck.php <autoload.php>` for manifest validation and feature growth rules (no lifecycle API needed). Run `php tests/ScaffoldCheck.php <autoload.php> features:foundation,defaults` for a feature selection. Run `php tests/LifecycleCheck.php <autoload.php>` for the lifecycle against the Mod in vendor: first adoption, plan and apply, additive upgrade, refused removal, an unowned path, resume, and a cold retry. `php tests/ResourceCheck.php <autoload.php>` tampers only fresh disposable package copies. CI runs all of these on PHP 8.4 and 8.5. These callbacks and files are synthetic adapter evidence, not consumer operation/tenant/browser/database acceptance. `ScaffoldCheck.php` compares snapshots to actual public released scaffold output for every A/B/C/D release.
 
-The tests install the blueprint's peer packages as dev dependencies so the compatibility check runs on real versions. `tey/concierge` 0.7.1 does not yet allow Mod 0.8, so `tests/fixtures/concierge` stands in for it with the same name and version and no code. A real host cannot satisfy this blueprint until Concierge releases for Mod 0.8
+The tests install the blueprint's peer packages as dev dependencies, so the compatibility check runs on real released versions, including `tey/concierge` ^0.7.2 with Mod 0.8.
 
 19 October 2026: Added a bounded public-only lifecycle adapter, immutable resource checks, explicit host/overlay preflight, authoritative provenance and CLI exit propagation. Two-consumer execution and published installation remain separate gates.
 

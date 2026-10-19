@@ -49,7 +49,7 @@ try {
     } catch (RuntimeException $e) {
         blueprintCheck($e->getMessage() === 'Invalid blueprint resource.', 'resource traversal refused');
     }
-    blueprintCheck(Blueprint::release('A')->sourceReference() === 'sha256:ba839706bc9905327fc6328b926892b01d52ffb5bff2257689d9897828642979' && Blueprint::release('B')->sourceReference() === 'sha256:41ce80592e59248cd9d5c4895ae6aa5b3c314ca8862e1c08228b052f8a487b4a', 'A and B source references match their pinned groups-key identities');
+    blueprintCheck(Blueprint::release('A')->sourceReference() === 'sha256:21bd170447418e3d697324817f9d9874473b79b949a7e509d877d022ec2e45e2' && Blueprint::release('B')->sourceReference() === 'sha256:70af6427bc4a6de682e01d6e1ef0f11553a177fa34fa3d2c238649b2a5ac726c', 'A and B source references match their pinned groups-key identities');
     $root = sys_get_temp_dir().'/starter-blueprint-scaffold-'.bin2hex(random_bytes(6));
     foreach (['bootstrap/cache', 'config', 'app', 'storage/framework', 'storage/logs'] as $dir) {
         mkdir($root.'/'.$dir, 0700, true);

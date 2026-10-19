@@ -7,15 +7,15 @@ use RuntimeException;
 final readonly class Blueprint
 {
     private const REFERENCES = [
-        'A' => 'sha256:ba839706bc9905327fc6328b926892b01d52ffb5bff2257689d9897828642979',
-        'B' => 'sha256:41ce80592e59248cd9d5c4895ae6aa5b3c314ca8862e1c08228b052f8a487b4a',
-        'C' => 'sha256:16adb15618b84472b93b5b31be55c8401bdee6a8a8da94b23b701a04f9b2460a',
-        'D' => 'sha256:77a4c1bf9f21dbfd6aec3b1db3dc1dcfdcaaf76d975869556532be77f592face',
+        'A' => 'sha256:21bd170447418e3d697324817f9d9874473b79b949a7e509d877d022ec2e45e2',
+        'B' => 'sha256:70af6427bc4a6de682e01d6e1ef0f11553a177fa34fa3d2c238649b2a5ac726c',
+        'C' => 'sha256:854058507018a0826f7c5b98aa5e39e24b1cfdde7299d31b8421053fa8a9a3ff',
+        'D' => 'sha256:a85ea6fe8922388470fbdfc096e6907b1e397f6c88c38c8dda5ae63fa8217aaf',
     ];
 
     /** Selectable features in canonical order, with the pinned identity of each feature's manifest and stubs. */
     private const FEATURES = [
-        'foundation' => 'sha256:52dc40d200acb2a09be6593afe692df286159bfd359485c68a503703b5ef2218',
+        'foundation' => 'sha256:8e2e55ee652c150bb8455048fc11c34137e3b99b4d8c7dbc80286784ffeb4054',
         'defaults' => 'sha256:fb252b8b908a95b26579418ea661725c747464b1fe6cdd5bba4de5fd2a982e43',
     ];
 

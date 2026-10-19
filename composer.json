@@ -15,7 +15,7 @@
         "laravel/pennant": "^1.0",
         "spatie/laravel-multitenancy": "^4.2",
         "spatie/laravel-settings": "^3.9",
-        "tey/concierge": "0.7.1"
+        "tey/concierge": "^0.7.2"
     },
     "autoload": {
         "psr-4": {
@@ -37,14 +37,5 @@
     },
     "config": {
         "sort-packages": true
-    },
-    "repositories": [
-        {
-            "type": "path",
-            "url": "tests/fixtures/concierge",
-            "options": {
-                "symlink": false
-            }
-        }
-    ]
+    }
 }
