@@ -1,0 +1,10 @@
+<?php
+
+namespace {{ namespace }};
+
+final class {{ class }}
+{
+    public const BLUEPRINT_VERSION = '0.1.0';
+    public const CONFIGURED_IS_HEALTHY = false;
+    public const EXPLICIT_RECOVERY = false;
+}

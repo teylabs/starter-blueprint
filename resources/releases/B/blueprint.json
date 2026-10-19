@@ -2,7 +2,7 @@
   "format": 1,
   "id": "teylabs/private-workspace",
   "version": "0.2.0",
-  "modules": [
+  "groups": [
     "workspace-foundation"
   ],
   "requirements": {

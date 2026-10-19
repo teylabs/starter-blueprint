@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "id": "defaults",
+  "owns": [
+    "app/Support/Starter/Defaults"
+  ],
+  "files": {
+    "app/Support/Starter/Defaults/BlueprintDefaults.php": {
+      "stub": "defaults.php.stub",
+      "scaffold": "starter-foundation",
+      "ownership": "generated"
+    }
+  },
+  "requires": {
+    "features": [
+      "foundation"
+    ],
+    "packages": {}
+  },
+  "conflicts": [],
+  "host_owned": [
+    "config/starter-bindings.php"
+  ]
+}

@@ -1,0 +1,9 @@
+<?php
+
+namespace {{ namespace }};
+
+final class {{ class }}
+{
+    public const BLUEPRINT_VERSION = '0.1.0';
+    public const REGISTRATION = 'closed';
+}

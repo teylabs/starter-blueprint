@@ -24,7 +24,7 @@ final class BlueprintLayoutProbeProvider extends ServiceProvider
     public function boot(): void
     {
         if (self::$misplace) {
-            Mod::layout('laravel')->generates('starter-defaults', in: 'Unexpected', stub: Stub::file(Blueprint::release(config('starter-blueprint.release'))->stubPath('defaults.php.stub')));
+            Mod::layout('laravel')->generates('starter-defaults', in: 'Unexpected', stub: Stub::file((config('starter-blueprint.features') ? Blueprint::features(config('starter-blueprint.features')) : Blueprint::release(config('starter-blueprint.release')))->stubPath('defaults.php.stub')));
         }
     }
 }
@@ -37,8 +37,11 @@ function blueprintCheck(bool $condition, string $message): void
 }
 try {
     $release = $argv[2] ?? 'A';
-    $blueprint = Blueprint::release($release);
-    blueprintCheck($blueprint->sourceReference() === Blueprint::release($release)->sourceReference(), 'same immutable blueprint produces same source reference');
+    // `features:foundation,defaults` selects features instead of an A-D release fixture.
+    $features = str_starts_with($release, 'features:') ? explode(',', substr($release, 9)) : null;
+    $load = fn (): Blueprint => $features === null ? Blueprint::release($release) : Blueprint::features($features);
+    $blueprint = $load();
+    blueprintCheck($blueprint->sourceReference() === $load()->sourceReference(), 'same immutable blueprint produces same source reference');
     blueprintCheck($blueprint->sourceReference() !== Blueprint::release($release === 'B' ? 'A' : 'B')->sourceReference(), 'changed blueprint bytes have a different source reference');
     try {
         $blueprint->stub('../outside');
@@ -46,14 +49,14 @@ try {
     } catch (RuntimeException $e) {
         blueprintCheck($e->getMessage() === 'Invalid blueprint resource.', 'resource traversal refused');
     }
-    blueprintCheck(Blueprint::release('A')->sourceReference() === 'sha256:015b8df75a46c4f04ec1d59f6b7a2473eaea8a283037727db7d6f3a38e8e3cd1' && Blueprint::release('B')->sourceReference() === 'sha256:281b86bdd27b38c1ea0b1d29e65dd1a3ff951010e254cd6e86bbbc4819dd7c37', 'initial immutable A and B source references retained');
+    blueprintCheck(Blueprint::release('A')->sourceReference() === 'sha256:81ac85e037756f52fe8c3d129fb6f45c29b51fae47d8bf7927d2ae4f3ccd2ea7' && Blueprint::release('B')->sourceReference() === 'sha256:9dc857f776eaa9dfc905ffc0828823f4864c8fe9b41fc0fbc2a7bca2728332ba', 'A and B source references match their pinned groups-key identities');
     $root = sys_get_temp_dir().'/starter-blueprint-scaffold-'.bin2hex(random_bytes(6));
     foreach (['bootstrap/cache', 'config', 'app', 'storage/framework', 'storage/logs'] as $dir) {
         mkdir($root.'/'.$dir, 0700, true);
     }
     file_put_contents($root.'/composer.json', json_encode(['name' => 'example/consumer', 'autoload' => ['psr-4' => ['App\\' => 'app/']]]));
     file_put_contents($root.'/config/app.php', "<?php return ['name'=>'Synthetic consumer','env'=>'testing','key'=>'base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=','cipher'=>'AES-256-CBC'];");
-    file_put_contents($root.'/config/starter-blueprint.php', '<?php return '.var_export(['release' => $release], true).';');
+    file_put_contents($root.'/config/starter-blueprint.php', '<?php return '.var_export($features === null ? ['release' => $release] : ['features' => $features], true).';');
     $app = Application::configure($root)->withExceptions(fn ($e) => null)->withProviders([ModServiceProvider::class, BlueprintServiceProvider::class, BlueprintLayoutProbeProvider::class])->create();
     BlueprintLayoutProbeProvider::$misplace = ($argv[3] ?? '') === 'misplace-defaults';
     $kernel = $app->make(Kernel::class);
@@ -99,11 +102,13 @@ try {
         $expected = $blueprint->snapshot()['files'][$relative];
         blueprintCheck(file_get_contents($root.'/'.$relative) === $expected, 'generated exact immutable bytes for '.basename($relative));
     }
-    if (in_array($release, ['C', 'D'], true)) {
+    if (in_array($release, ['C', 'D'], true) || ($features !== null && count($features) === 2)) {
         blueprintCheck(count($plan['files']) === 2, 'two independently owned generated files delivered');
-        $other = Blueprint::release($release === 'C' ? 'D' : 'C');
-        foreach ($blueprint->manifest['generated'] as $relative => $entry) {
-            blueprintCheck($blueprint->stub($entry['stub']) !== $other->stub($entry['stub']), 'both release resources change independently: '.basename($relative));
+        if ($features === null) {
+            $other = Blueprint::release($release === 'C' ? 'D' : 'C');
+            foreach ($blueprint->manifest['generated'] as $relative => $entry) {
+                blueprintCheck($blueprint->stub($entry['stub']) !== $other->stub($entry['stub']), 'both release resources change independently: '.basename($relative));
+            }
         }
         file_put_contents($root.'/app/Support/Starter/Defaults/BlueprintDefaults.php', '<?php // host customised defaults');
         file_put_contents($root.'/app/HostDomain.php', '<?php // host owned');

@@ -29,5 +29,10 @@ jobs:
         run: |
           for release in A B C D; do php tests/ScaffoldCheck.php vendor/autoload.php "$release"; done
           php tests/ScaffoldCheck.php vendor/autoload.php C misplace-defaults
+          php tests/ScaffoldCheck.php vendor/autoload.php features:foundation
+          php tests/ScaffoldCheck.php vendor/autoload.php features:foundation,defaults
+          php tests/ScaffoldCheck.php vendor/autoload.php features:foundation,defaults misplace-defaults
+      - name: Feature manifests and selections
+        run: php tests/FeatureCheck.php vendor/autoload.php
       - name: Released Mod refuses lifecycle
         run: php tests/LifecycleCheck.php vendor/autoload.php released

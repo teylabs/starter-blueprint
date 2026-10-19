@@ -100,6 +100,8 @@ try {
         $kernel->bootstrap();
         check($kernel->call('starter:maintain', ['action' => 'plan']) !== 0 && str_contains($kernel->output(), 'Released Mod 0.7.2'), 'released CLI explicitly refuses with nonzero before generated effects');
         check(record($root) === null && ! is_file($root.'/app/Support/Starter/BlueprintPolicy.php'), 'released CLI preserves initial absence');
+        check($kernel->call('starter:maintain', ['action' => 'plan', '--features' => 'defaults']) !== 0 && str_contains($kernel->output(), 'requires feature foundation'), 'CLI feature selection validates requirements');
+        check($kernel->call('starter:maintain', ['action' => 'plan', '--features' => 'foundation', '--original-features' => 'foundation,defaults']) !== 0 && str_contains($kernel->output(), 'Feature removal is refused'), 'CLI refuses feature removal');
 
         exit(0);
     }
@@ -249,6 +251,34 @@ try {
     check($result['status'] === 'completed', 'new intent upgrades C to D across trusted executor transition');
     $installed = json_decode(record($root), true, flags: JSON_THROW_ON_ERROR);
     check($installed['artifact']['metadata'] === $adapter->artifact($d, $bindings)->metadata && isset($installed['commit']['inputs']['executor-provenance']), 'artifact provenance stays immutable while execution input is bound in authoritative commit');
+    // Feature selections grow on one artifact: adopt without a baseline, add, never remove.
+    $foundation = Blueprint::features(['foundation']);
+    $everything = Blueprint::all();
+    [$root, $paths] = fixture();
+    $plan = $adapter->plan($root, 'features-one', null, $foundation, $bindings, $paths);
+    check($plan->executable() && count($plan->target->files) === 1, 'first adoption of one feature plans from an empty original');
+    $adapter->apply($plan, null, $foundation, $paths, 'adopt-foundation', bound($root, $host), true);
+    $installed = json_decode(record($root), true, flags: JSON_THROW_ON_ERROR);
+    check($installed['artifact']['metadata']['blueprint_features'] === ['foundation'], 'installed artifact records the selected features');
+    check(! is_file($root.'/app/Support/Starter/Defaults/BlueprintDefaults.php'), 'unselected feature file is not delivered');
+    $grow = $adapter->plan($root, 'features-one', $foundation, $everything, $bindings, $paths);
+    check($grow->executable(), 'adding a feature is an executable upgrade on the same artifact');
+    $result = $adapter->apply($grow, $foundation, $everything, $paths, 'add-defaults', bound($root, $host), true);
+    check($result['status'] === 'completed' && is_file($root.'/app/Support/Starter/Defaults/BlueprintDefaults.php') && file_get_contents($root.'/app/Host.php') === '<?php // independently owned domain', 'additive upgrade delivers the new feature and preserves host code');
+    $installed = json_decode(record($root), true, flags: JSON_THROW_ON_ERROR);
+    check($installed['artifact']['metadata']['blueprint_features'] === ['foundation', 'defaults'], 'installed artifact records the larger selection');
+    $before = record($root);
+    refuses(fn () => $adapter->plan($root, 'features-one', $everything, $foundation, $bindings, $paths), 'removing a feature refuses');
+    check(record($root) === $before, 'refused removal leaves the installed record untouched');
+    [$root, $paths] = fixture();
+    $plan = $adapter->plan($root, 'features-two', null, $everything, $bindings, $paths);
+    $result = $adapter->apply($plan, null, $everything, $paths, 'adopt-all', bound($root, $host), true);
+    check($result['status'] === 'completed' && is_file($root.'/app/Support/Starter/BlueprintPolicy.php') && is_file($root.'/app/Support/Starter/Defaults/BlueprintDefaults.php'), 'whole app adopts as all features at once');
+    [$root, $paths] = fixture();
+    file_put_contents($root.'/app/Support/Starter/BlueprintPolicy.php', $foundation->snapshot()['files']['app/Support/Starter/BlueprintPolicy.php']);
+    $plan = $adapter->plan($root, 'features-unowned', null, $foundation, $bindings, $paths);
+    refuses(fn () => $adapter->apply($plan, null, $foundation, $paths, 'unowned-feature', bound($root, $host), true), 'first adoption refuses an existing unowned path even with matching bytes');
+    check(record($root) === null, 'unowned feature collision never records ownership');
     // Actual Laravel console adapter, with an explicit synthetic host binding.
     [$root, $paths] = fixture();
     $app = Application::configure($root)->withExceptions(fn ($e) => null)->withProviders([ModServiceProvider::class, BlueprintServiceProvider::class])->create();

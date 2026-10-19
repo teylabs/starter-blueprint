@@ -17,7 +17,8 @@ final class BlueprintServiceProvider extends ServiceProvider
             throw new RuntimeException('Blueprint requires the unmodified laravel layout.');
         }
         $this->commands([Console\LifecycleCommand::class]);
-        $blueprint = Blueprint::release(config('starter-blueprint.release', 'A'));
+        $features = config('starter-blueprint.features');
+        $blueprint = $features ? Blueprint::features($features) : Blueprint::release(config('starter-blueprint.release', 'A'));
         $members = [];
         foreach ($blueprint->manifest['generated'] as $path => $entry) {
             $member = match ($path) {
@@ -43,7 +44,7 @@ final class BlueprintServiceProvider extends ServiceProvider
 
             return true;
         };
-        Mod::vendor('teylabs')->scaffold('starter-foundation', function (Scaffold $recipe) use ($members, $validate): void {
+        Mod::vendor('tey')->scaffold('starter-foundation', function (Scaffold $recipe) use ($members, $validate): void {
             $recipe->named('BlueprintPolicy');
             foreach ($members as [$type, $name]) {
                 $recipe->makes($type, name: $name, as: substr($type, 8), ungrouped: true, when: $validate);

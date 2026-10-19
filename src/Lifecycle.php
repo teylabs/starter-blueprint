@@ -71,15 +71,29 @@ final readonly class Lifecycle
         $snapshot = $blueprint->snapshot();
         $manifest = $snapshot['manifest'];
 
-        return new Artifact($manifest['id'], $manifest['version'], $snapshot['files'], $manifest['modules'], $bindings, $manifest['verification'], metadata: ['blueprint_source' => $snapshot['source_reference'], 'blueprint_manifest' => $manifest, 'applied_migration_ids' => []]);
+        $metadata = ['blueprint_source' => $snapshot['source_reference'], 'blueprint_manifest' => $manifest, 'applied_migration_ids' => []];
+        if (isset($manifest['features'])) {
+            $metadata['blueprint_features'] = $manifest['features'];
+        }
+
+        return new Artifact($manifest['id'], $manifest['version'], $snapshot['files'], $manifest['groups'], $bindings, $manifest['verification'], metadata: $metadata);
+    }
+
+    /** The original for a first adoption: no files, and the same name, modules, bindings and checks as the target. */
+    private function empty(Artifact $b, Blueprint $target): Artifact
+    {
+        $metadata = $target->selection() === [] ? [] : ['blueprint_features' => [], 'applied_migration_ids' => []];
+
+        return new Artifact($b->name, $b->version, [], $b->modules, $b->bindings, $b->checks, metadata: $metadata);
     }
 
     public function plan(string $root, string $appId, ?Blueprint $original, Blueprint $target, array $bindings, array $inputPaths): FilePlan
     {
+        Blueprint::assertGrowth($original, $target);
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $bindings);
-        $a = $original === null ? new Artifact($b->name, $b->version, [], $b->modules, $b->bindings, $b->checks) : $this->artifact($original, $bindings);
+        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $bindings);
         $plan = Checkout::inspect($root, $appId, $a, $b, $inputPaths, $compatibility);
         $this->inputs($root, $inputPaths, $runtime);
 
@@ -88,10 +102,11 @@ final readonly class Lifecycle
 
     public function apply(FilePlan $plan, ?Blueprint $original, Blueprint $target, array $inputPaths, string $intent, Closure $hostOperationCheck, bool $exclusiveCheckout): array
     {
+        Blueprint::assertGrowth($original, $target);
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $plan->target->bindings);
-        $a = $original === null ? new Artifact($b->name, $b->version, [], $b->modules, $b->bindings, $b->checks) : $this->artifact($original, $plan->baseline->bindings);
+        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $plan->baseline->bindings);
         if ($plan->target->identity() !== $b->identity() || $plan->baseline->identity() !== $a->identity() || $plan->compatibility !== $compatibility) {
             throw new RuntimeException('Plan does not match the immutable blueprint and current compatibility.');
         }
@@ -105,10 +120,11 @@ final readonly class Lifecycle
 
     public function resume(string $root, string $appId, ?Blueprint $original, Blueprint $target, array $bindings, array $inputPaths, string $intent, Closure $hostOperationCheck, bool $exclusiveCheckout): array
     {
+        Blueprint::assertGrowth($original, $target);
         $runtime = $this->runtime();
         $compatibility = $this->compatible($target);
         $b = $this->artifact($target, $bindings);
-        $a = $original === null ? new Artifact($b->name, $b->version, [], $b->modules, $b->bindings, $b->checks) : $this->artifact($original, $bindings);
+        $a = $original === null ? $this->empty($b, $target) : $this->artifact($original, $bindings);
         Checkout::inspect($root, $appId, $a, $b, $inputPaths, $compatibility);
         $this->inputs($root, $inputPaths, $runtime);
         $this->hostCheck($root, $inputPaths, $hostOperationCheck);
